@@ -6,7 +6,9 @@ pragma solidity 0.6.10;
 import {MarginVault} from "./MarginVault.sol";
 
 /**
- *
+ * @title Actions
+ * @author Opyn Team
+ * @notice A library that provides a ActionArgs struct, sub types of Action structs, and functions to parse ActionArgs into specific Actions.
  */
 library Actions {
     // possible actions that can be performed
@@ -146,7 +148,7 @@ library Actions {
     }
 
     /**
-     * @notice parses the passed in action argmuents to get the argmuents for an open vault action
+     * @notice parses the passed in action arguments to get the arguments for an open vault action
      * @param _args general action arguments structure
      * @return arguments for a open vault action
      */
@@ -158,7 +160,7 @@ library Actions {
     }
 
     /**
-     * @notice parses the passed in action argmuents to get the argmuents for a mint action
+     * @notice parses the passed in action arguments to get the arguments for a mint action
      * @param _args general action arguments structure
      * @return arguments for a mint action
      */
@@ -178,7 +180,7 @@ library Actions {
     }
 
     /**
-     * @notice parses the passed in action argmuents to get the argmuents for a burn action
+     * @notice parses the passed in action arguments to get the arguments for a burn action
      * @param _args general action arguments structure
      * @return arguments for a burn action
      */
@@ -198,7 +200,7 @@ library Actions {
     }
 
     /**
-     * @notice parses the passed in action argmuents to get the argmuents for a deposit action
+     * @notice parses the passed in action arguments to get the arguments for a deposit action
      * @param _args general action arguments structure
      * @return arguments for a deposit action
      */
@@ -221,7 +223,7 @@ library Actions {
     }
 
     /**
-     * @notice parses the passed in action argmuents to get the argmuents for a withdraw action
+     * @notice parses the passed in action arguments to get the arguments for a withdraw action
      * @param _args general action arguments structure
      * @return arguments for a withdraw action
      */
@@ -245,7 +247,7 @@ library Actions {
     }
 
     /**
-     * @notice parses the passed in action argmuents to get the argmuents for an redeem action
+     * @notice parses the passed in action arguments to get the arguments for an redeem action
      * @param _args general action arguments structure
      * @return arguments for a redeem action
      */
@@ -257,7 +259,7 @@ library Actions {
     }
 
     /**
-     * @notice parses the passed in action argmuents to get the argmuents for a settle vault action
+     * @notice parses the passed in action arguments to get the arguments for a settle vault action
      * @param _args general action arguments structure
      * @return arguments for a settle vault action
      */
@@ -267,12 +269,13 @@ library Actions {
             "Actions: can only parse arguments for settle vault actions"
         );
         require(_args.owner != address(0), "Actions: cannot settle vault for an invalid account");
+        require(_args.secondAddress != address(0), "Actions: cannot withdraw payout to an invalid account");
 
         return SettleVaultArgs({owner: _args.owner, vaultId: _args.vaultId, to: _args.secondAddress});
     }
 
     /**
-     * @notice parses the passed in action argmuents to get the argmuents for a call action
+     * @notice parses the passed in action arguments to get the arguments for a call action
      * @param _args general action arguments structure
      * @return arguments for a call action
      */

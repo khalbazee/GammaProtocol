@@ -7,12 +7,10 @@ import {OpynPricerInterface} from "../interfaces/OpynPricerInterface.sol";
 import {SafeMath} from "../packages/oz/SafeMath.sol";
 
 /**
- * @notice A Pricer contract for Chainlink for 1 asset
+ * @notice A Pricer contract for one asset as reported by Chainlink
  */
 contract ChainLinkPricer is OpynPricerInterface {
     using SafeMath for uint256;
-
-    uint256 internal constant BASE = 1e10;
 
     /// @notice the opyn oracle address
     OracleInterface public oracle;
@@ -20,12 +18,13 @@ contract ChainLinkPricer is OpynPricerInterface {
     /// @notice the aggregator for an asset
     AggregatorInterface public aggregator;
 
+    /// @notice asset that this pricer will a get price for
     address public asset;
 
     /**
-     * @param _asset the asset type that this pricer help relay
-     * @param _aggregator the ChainLink aggregator contract for this asset
-     * @param _oracle the Opyn Oracle contract address.
+     * @param _asset asset that this pricer will get a price for
+     * @param _aggregator Chainlink aggregator contract for the asset
+     * @param _oracle Opyn Oracle address
      */
     constructor(
         address _asset,
@@ -40,30 +39,31 @@ contract ChainLinkPricer is OpynPricerInterface {
     }
 
     /**
-     * @notice get live price for the asset.
-     * @dev overides the getPrice function in OpynPricerInterface.
-     * @return price of asset scaled by 1e18
+     * @notice get the live price for the asset
+     * @dev overides the getPrice function in OpynPricerInterface
+     * @return price of the asset in USD, scaled by 1e8
      */
     function getPrice() external override view returns (uint256) {
         int256 answer = aggregator.latestAnswer();
         require(answer > 0, "ChainLinkPricer: price is lower than 0");
-        // Scale chainlink answer (1e8) to 1e18
-        return uint256(answer).mul(BASE);
+        // chainlink's answer is already 1e8
+        return uint256(answer);
     }
 
     /**
-     * Set the expiry price to the oracle
-     * @param _expiryTimestamp the expiry want to send
-     * @param _roundId the first roundId after expiry
+     * @notice set the expiry price in the oracle
+     * @dev a roundId must be provided to confirm price validity, which is the first Chainlink price provided after the expiryTimestamp
+     * @param _expiryTimestamp expiry to set a price for
+     * @param _roundId the first roundId after expiryTimestamp
      */
-    function setExpiryPriceToOralce(uint256 _expiryTimestamp, uint256 _roundId) external {
+    function setExpiryPriceInOracle(uint256 _expiryTimestamp, uint256 _roundId) external {
         uint256 previousRoundTimestamp = aggregator.getTimestamp(_roundId.sub(1));
         require(previousRoundTimestamp < _expiryTimestamp, "ChainLinkPricer: invalid roundId");
 
         uint256 roundTimestamp = aggregator.getTimestamp(_roundId);
         require(_expiryTimestamp <= roundTimestamp, "ChainLinkPricer: invalid roundId");
 
-        uint256 price = uint256(aggregator.getAnswer(_roundId)).mul(BASE);
+        uint256 price = uint256(aggregator.getAnswer(_roundId));
         oracle.setExpiryPrice(asset, _expiryTimestamp, price);
     }
 }

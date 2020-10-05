@@ -7,6 +7,7 @@ import {
 } from '../../build/types/truffle-types'
 import BigNumber from 'bignumber.js'
 import {assert} from 'chai'
+import {createTokenAmount} from '../utils'
 
 const {expectRevert, expectEvent, time} = require('@openzeppelin/test-helpers')
 
@@ -82,7 +83,7 @@ contract('Oracle', ([owner, disputer, random, collateral, strike]) => {
     })
 
     it('should update after Pricer update', async () => {
-      const price1 = new BigNumber(235).times(1e18).toString()
+      const price1 = createTokenAmount(235)
       await wethPricer.setPrice(price1)
       const oraclePrice = await oracle.getPrice(weth.address)
       assert.equal(oraclePrice.toString(), price1)
@@ -151,18 +152,18 @@ contract('Oracle', ([owner, disputer, random, collateral, strike]) => {
       assetPrice = new BigNumber(278)
     })
 
-    it('should revert setting price if caller is not the pricer', async () => {
+    it('should revert setting price if caller is not the pricer or disputer', async () => {
       // increase til locking period over
       await expectRevert(
-        oracle.setExpiryPrice(weth.address, otokenExpiry, assetPrice),
-        'Oracle: caller is not the pricer',
+        oracle.setExpiryPrice(weth.address, otokenExpiry, assetPrice, {from: random}),
+        'Oracle: caller is not authorized to set expiry price',
       )
     })
 
     it('should revert setting price if locking period is not over', async () => {
       // the setExpiryPrice is set through pricer
       await expectRevert(
-        wethPricer.setExpiryPriceToOralce(otokenExpiry, assetPrice),
+        wethPricer.setExpiryPriceInOracle(otokenExpiry, assetPrice),
         'Oracle: locking period is not over yet',
       )
     })
@@ -176,7 +177,7 @@ contract('Oracle', ([owner, disputer, random, collateral, strike]) => {
 
     it('should set price correctly', async () => {
       // setExpiryPrice is called through pricer
-      await wethPricer.setExpiryPriceToOralce(otokenExpiry, assetPrice)
+      await wethPricer.setExpiryPriceInOracle(otokenExpiry, assetPrice)
 
       const [price, isFinalized] = await oracle.getExpiryPrice(weth.address, otokenExpiry)
       assert.equal(price.toString(), assetPrice.toString())
@@ -184,7 +185,7 @@ contract('Oracle', ([owner, disputer, random, collateral, strike]) => {
     })
 
     it('should revert if the same asset - expiry is set twice', async () => {
-      await expectRevert(wethPricer.setExpiryPriceToOralce(otokenExpiry, assetPrice), 'Oracle: dispute period started')
+      await expectRevert(wethPricer.setExpiryPriceInOracle(otokenExpiry, assetPrice), 'Oracle: dispute period started')
     })
   })
 
@@ -236,6 +237,39 @@ contract('Oracle', ([owner, disputer, random, collateral, strike]) => {
         oracle.disputeExpiryPrice(weth.address, otokenExpiry, disputePrice, {from: disputer}),
         'Oracle: dispute period over',
       )
+    })
+  })
+
+  describe('Set Expiry Price From Disputer', async () => {
+    const lockingPeriod = new BigNumber(60 * 15) // 15min
+    const disputePeriod = new BigNumber(60 * 45) // 45min
+    const assetPrice = new BigNumber(278)
+
+    let otoken: MockOtokenInstance
+    let otokenExpiry: BigNumber
+
+    before(async () => {
+      otoken = await Otoken.new()
+      otokenExpiry = new BigNumber((await time.latest()).toNumber() + time.duration.days(30).toNumber())
+      await otoken.init(addressBook.address, weth.address, strike, collateral, '200', otokenExpiry, true)
+      await oracle.setAssetPricer(weth.address, wethPricer.address, {from: owner})
+      await oracle.setLockingPeriod(wethPricer.address, lockingPeriod, {from: owner})
+      await oracle.setDisputePeriod(wethPricer.address, disputePeriod, {from: owner})
+
+      await time.increaseTo(otokenExpiry.toNumber())
+      await time.increase(lockingPeriod.toNumber() + 100)
+
+      // set disputer address
+      await oracle.setDisputer(disputer, {from: owner})
+    })
+
+    it('should set price correctly from disputer', async () => {
+      // setExpiryPrice is called from disputer
+      await oracle.setExpiryPrice(weth.address, otokenExpiry, assetPrice, {from: disputer})
+
+      const [price, isFinalized] = await oracle.getExpiryPrice(weth.address, otokenExpiry)
+      assert.equal(price.toString(), assetPrice.toString())
+      assert.equal(isFinalized, false)
     })
   })
 })

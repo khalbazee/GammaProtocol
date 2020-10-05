@@ -28,7 +28,7 @@ contract Otoken is ERC20Initializable {
     /// @notice asset that is held as collateral against short/written options
     address public collateralAsset;
 
-    /// @notice strike price with decimals = 18
+    /// @notice strike price with decimals = 8
     uint256 public strikePrice;
 
     /// @notice expiration timestamp of the option, represented as a unix timestamp
@@ -37,14 +37,15 @@ contract Otoken is ERC20Initializable {
     /// @notice True if a put option, False if a call option
     bool public isPut;
 
-    uint256 private constant STRIKE_PRICE_DIGITS = 1e18;
+    uint256 private constant STRIKE_PRICE_SCALE = 1e8;
+    uint256 private constant STRIKE_PRICE_DIGITS = 8;
 
     /**
      * @notice initialize the oToken
      * @param _underlyingAsset asset that the option references
      * @param _strikeAsset asset that the strike price is denominated in
      * @param _collateralAsset asset that is held as collateral against short/written options
-     * @param _strikePrice strike price with decimals = 18
+     * @param _strikePrice strike price with decimals = 8
      * @param _expiryTimestamp expiration timestamp of the option, represented as a unix timestamp
      * @param _isPut True if a put option, False if a call option
      */
@@ -66,6 +67,7 @@ contract Otoken is ERC20Initializable {
         isPut = _isPut;
         (string memory tokenName, string memory tokenSymbol) = _getNameAndSymbol();
         __ERC20_init_unchained(tokenName, tokenSymbol);
+        _setupDecimals(8);
     }
 
     /**
@@ -75,6 +77,10 @@ contract Otoken is ERC20Initializable {
      * @param amount amount to mint
      */
     function mintOtoken(address account, uint256 amount) external {
+        require(
+            msg.sender == AddressBookInterface(addressBook).getController(),
+            "Otoken: Only Controller can mint Otokens"
+        );
         _mint(account, amount);
     }
 
@@ -85,6 +91,10 @@ contract Otoken is ERC20Initializable {
      * @param amount amount to burn
      */
     function burnOtoken(address account, uint256 amount) external {
+        require(
+            msg.sender == AddressBookInterface(addressBook).getController(),
+            "Otoken: Only Controller can burn Otokens"
+        );
         _burn(account, amount);
     }
 
@@ -95,10 +105,10 @@ contract Otoken is ERC20Initializable {
      * @return tokenSymbol (ex: oETHUSDC-05SEP20-200P)
      */
     function _getNameAndSymbol() internal view returns (string memory tokenName, string memory tokenSymbol) {
-        string memory underlying = _getTokenSymbol(underlyingAsset);
-        string memory strike = _getTokenSymbol(strikeAsset);
-        string memory collateral = _getTokenSymbol(collateralAsset);
-        uint256 displayedStrikePrice = strikePrice.div(STRIKE_PRICE_DIGITS);
+        string memory underlying = ERC20Initializable(underlyingAsset).symbol();
+        string memory strike = ERC20Initializable(strikeAsset).symbol();
+        string memory collateral = ERC20Initializable(collateralAsset).symbol();
+        string memory displayStrikePrice = _getDisplayedStrikePrice(strikePrice);
 
         // convert expiry to a readable string
         (uint256 year, uint256 month, uint256 day) = BokkyPooBahsDateTimeLibrary.timestampToDate(expiryTimestamp);
@@ -121,7 +131,7 @@ contract Otoken is ERC20Initializable {
                 "-",
                 Strings.toString(year),
                 " ",
-                Strings.toString(displayedStrikePrice),
+                displayStrikePrice,
                 typeFull,
                 " ",
                 collateral,
@@ -140,19 +150,38 @@ contract Otoken is ERC20Initializable {
                 monthSymbol,
                 _uintTo2Chars(year),
                 "-",
-                Strings.toString(displayedStrikePrice),
+                displayStrikePrice,
                 typeSymbol
             )
         );
     }
 
     /**
-     * @dev get token symbol
-     * @param token the ERC20 token address
+     * @dev convert strike price scaled by 1e8 to human readable number string
+     * @param _strikePrice strike price scaled by 1e8
+     * @return strike price string
      */
-    function _getTokenSymbol(address token) internal view returns (string memory) {
-        if (token == address(0)) return "ETH";
-        else return ERC20Initializable(token).symbol();
+    function _getDisplayedStrikePrice(uint256 _strikePrice) internal pure returns (string memory) {
+        uint256 remainder = _strikePrice.mod(STRIKE_PRICE_SCALE);
+        uint256 quotient = _strikePrice.div(STRIKE_PRICE_SCALE);
+        string memory quotientStr = Strings.toString(quotient);
+
+        if (remainder == 0) return quotientStr;
+
+        uint256 trailingZeroes = 0;
+        while (remainder.mod(10) == 0) {
+            remainder = remainder / 10;
+            trailingZeroes += 1;
+        }
+
+        // pad the number with "1 + starting zeroes"
+        remainder += 10**(STRIKE_PRICE_DIGITS - trailingZeroes);
+
+        string memory tmpStr = Strings.toString(remainder);
+        tmpStr = _slice(tmpStr, 1, 1 + STRIKE_PRICE_DIGITS - trailingZeroes);
+
+        string memory completeStr = string(abi.encodePacked(quotientStr, ".", tmpStr));
+        return completeStr;
     }
 
     /**
@@ -160,13 +189,12 @@ contract Otoken is ERC20Initializable {
      * @return 2 characters that corresponds to a number
      */
     function _uintTo2Chars(uint256 number) internal pure returns (string memory) {
+        if (number > 99) number = number % 100;
         string memory str = Strings.toString(number);
-        if (number > 99) return Strings.toString(number % 100);
         if (number < 10) {
             return string(abi.encodePacked("0", str));
-        } else {
-            return str;
         }
+        return str;
     }
 
     /**
@@ -180,6 +208,24 @@ contract Otoken is ERC20Initializable {
         } else {
             return ("C", "Call");
         }
+    }
+
+    /**
+     * @dev cut string s into s[start:end]
+     * @param _s the string to cut
+     * @param _start the starting index
+     * @param _end the ending index (excluded in the substring)
+     */
+    function _slice(
+        string memory _s,
+        uint256 _start,
+        uint256 _end
+    ) internal pure returns (string memory) {
+        bytes memory a = new bytes(_end - _start);
+        for (uint256 i = 0; i < _end - _start; i++) {
+            a[i] = bytes(_s)[_start + i];
+        }
+        return string(a);
     }
 
     /**
@@ -212,32 +258,6 @@ contract Otoken is ERC20Initializable {
             return ("NOV", "November");
         } else {
             return ("DEC", "December");
-        }
-    }
-
-    /**
-     * @dev this function overrides the _beforeTokenTransfer hook in ERC20Initializable.sol
-     * if the operation is mint or burn, requires msg.sender to be the controller
-     * the function signature is the same as _beforeTokenTransfer defined in ERC20Initializable.sol
-     * @param from from address
-     * @param to to address
-     * @param amount amount to transfer
-     */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
-        if (from == address(0)) {
-            require(
-                msg.sender == AddressBookInterface(addressBook).getController(),
-                "Otoken: Only Controller can mint Otokens"
-            );
-        } else if (to == address(0)) {
-            require(
-                msg.sender == AddressBookInterface(addressBook).getController(),
-                "Otoken: Only Controller can burn Otokens"
-            );
         }
     }
 }

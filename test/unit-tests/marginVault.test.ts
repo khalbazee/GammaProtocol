@@ -5,6 +5,7 @@ import {
   MockAddressBookInstance,
 } from '../../build/types/truffle-types'
 import {BigNumber} from 'bignumber.js'
+import {createTokenAmount} from '../utils'
 
 const {expectRevert} = require('@openzeppelin/test-helpers')
 
@@ -15,7 +16,6 @@ const MockAddressBook = artifacts.require('MockAddressBook')
 const MarginVault = artifacts.require('MarginVault.sol')
 
 const ZERO_ADDR = '0x0000000000000000000000000000000000000000'
-const ETH_ADDR = ZERO_ADDR
 
 contract('MarginVault', ([deployer, controller]) => {
   let weth: MockERC20Instance
@@ -26,7 +26,7 @@ contract('MarginVault', ([deployer, controller]) => {
   let marginVaultTester: MarginVaultTesterInstance
 
   // let expiry: number;
-  const strikePrice = new BigNumber(200).times(new BigNumber(10).exponentiatedBy(18))
+  const strikePrice = createTokenAmount(200)
   const expiry = 1601020800 // 2020/09/25 0800 UTC
   const isPut = true
 
@@ -40,12 +40,12 @@ contract('MarginVault', ([deployer, controller]) => {
     await addressBook.setController(controller)
     // deploy otoken
     otoken = await Otoken.new()
-    await otoken.init(addressBook.address, ETH_ADDR, usdc.address, usdc.address, strikePrice, expiry, isPut, {
+    await otoken.init(addressBook.address, weth.address, usdc.address, usdc.address, strikePrice, expiry, isPut, {
       from: deployer,
     })
     // deploy second otoken
     otoken2 = await Otoken.new()
-    await otoken2.init(addressBook.address, ETH_ADDR, usdc.address, usdc.address, strikePrice, expiry, isPut, {
+    await otoken2.init(addressBook.address, weth.address, usdc.address, usdc.address, strikePrice, expiry, isPut, {
       from: deployer,
     })
     // margin vault

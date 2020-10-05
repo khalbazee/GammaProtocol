@@ -104,7 +104,7 @@ contract('PayableProxyController', ([owner, accountOwner1, holder1, random]) => 
 
     assert.equal(await proxy.proxyOwner(), addressBook.address, 'Proxy owner address mismatch')
     assert.equal(await controllerProxy.owner(), owner, 'Controller owner address mismatch')
-    assert.equal(await controllerProxy.systemPaused(), false, 'System is paused')
+    assert.equal(await controllerProxy.systemPartiallyPaused(), false, 'system is partially paused')
 
     payableProxyController = await PayableProxyController.new(controllerProxy.address, marginPool.address, weth.address)
 
@@ -359,7 +359,7 @@ contract('PayableProxyController', ([owner, accountOwner1, holder1, random]) => 
       // open new vault, mintnaked short, sell it to holder 1
       const vaultCounter = new BigNumber(await controllerProxy.getAccountVaultCounter(accountOwner1)).plus(1)
       const collateralToDeposit = createTokenAmount(strikePrice, 6)
-      const amountToMint = new BigNumber(1e12)
+      const amountToMint = createTokenAmount(1)
       const actionArgs = [
         {
           actionType: ActionType.OpenVault,
@@ -413,7 +413,7 @@ contract('PayableProxyController', ([owner, accountOwner1, holder1, random]) => 
     })
 
     it('should normally execute when owner address is equal to zero', async () => {
-      const amountToRedeem = new BigNumber(1e12)
+      const amountToRedeem = createTokenAmount(1)
       const actionArgs = [
         {
           actionType: ActionType.Redeem,
@@ -426,7 +426,7 @@ contract('PayableProxyController', ([owner, accountOwner1, holder1, random]) => 
           data: ZERO_ADDR,
         },
       ]
-      assert.equal(await controllerProxy.isExpired(shortOtoken.address), true, 'Short otoken is not expired yet')
+      assert.equal(await controllerProxy.hasExpired(shortOtoken.address), true, 'Short otoken is not expired yet')
 
       await shortOtoken.transfer(payableProxyController.address, amountToRedeem.toString(), {from: holder1})
       await payableProxyController.operate(actionArgs, holder1, {from: holder1})
