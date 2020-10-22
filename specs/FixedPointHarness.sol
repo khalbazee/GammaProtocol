@@ -14,32 +14,34 @@ import '../contracts/libs/FixedPointInt256.sol';
 contract FixedPointHarness {
   using FixedPointInt256 for FixedPointInt256.FixedPointInt;
 
-  function expectedAdd(uint256 _a, uint256 _b) external pure returns (uint256) {
-    uint256 c = ((_a * (1e9)) + (_b * (1e9))) / (1e9);
-    return c;
+  function testFPI(uint256 _a, uint256 _decimals) external pure returns (uint256) {
+    FixedPointInt256.FixedPointInt memory a = FixedPointInt256.fromScaledUint(_a, _decimals);
+    return FixedPointInt256.toScaledUint(a, _decimals, true);
   }
 
-  function testFPI(uint256 _a) external pure returns (uint256) {
-    FixedPointInt256.FixedPointInt memory a = FixedPointInt256.fromScaledUint(_a, 18);
-    return FixedPointInt256.toScaledUint(a, 18, true);
-  }
-
-  function testAdd(uint256 _a, uint256 _b) external pure returns (uint256) {
-    FixedPointInt256.FixedPointInt memory a = FixedPointInt256.fromScaledUint(_a, 18);
-    FixedPointInt256.FixedPointInt memory b = FixedPointInt256.fromScaledUint(_b, 18);
+  function testAdd(
+    uint256 _a,
+    uint256 _b,
+    uint256 _decimals
+  ) external pure returns (uint256) {
+    FixedPointInt256.FixedPointInt memory a = FixedPointInt256.fromScaledUint(_a, _decimals);
+    FixedPointInt256.FixedPointInt memory b = FixedPointInt256.fromScaledUint(_b, _decimals);
 
     FixedPointInt256.FixedPointInt memory c = a.add(b);
-    return c.toScaledUint(18, true);
+    return c.toScaledUint(_decimals, true);
   }
-  
-  function testSub(uint256 _a, uint256 _b) external pure returns (uint256) {
-    FixedPointInt256.FixedPointInt memory a = FixedPointInt256.fromScaledUint(_a, 18);
-    FixedPointInt256.FixedPointInt memory b = FixedPointInt256.fromScaledUint(_b, 18);
+
+  function testSub(
+    uint256 _a,
+    uint256 _b,
+    uint256 _decimals
+  ) external pure returns (uint256) {
+    FixedPointInt256.FixedPointInt memory a = FixedPointInt256.fromScaledUint(_a, _decimals);
+    FixedPointInt256.FixedPointInt memory b = FixedPointInt256.fromScaledUint(_b, _decimals);
 
     FixedPointInt256.FixedPointInt memory c = a.sub(b);
-    return c.toScaledUint(18, true);
+    return c.toScaledUint(_decimals, true);
   }
-
 
   function testMul(
     uint256 _a,
@@ -50,6 +52,18 @@ contract FixedPointHarness {
     FixedPointInt256.FixedPointInt memory b = FixedPointInt256.fromScaledUint(_b, _decimals);
 
     FixedPointInt256.FixedPointInt memory c = a.mul(b);
+    return c.toScaledUint(_decimals, true);
+  }
+
+  function testDiv(
+    uint256 _a,
+    uint256 _b,
+    uint256 _decimals
+  ) external pure returns (uint256) {
+    FixedPointInt256.FixedPointInt memory a = FixedPointInt256.fromScaledUint(_a, _decimals);
+    FixedPointInt256.FixedPointInt memory b = FixedPointInt256.fromScaledUint(_b, _decimals);
+
+    FixedPointInt256.FixedPointInt memory c = a.div(b);
     return c.toScaledUint(_decimals, true);
   }
 }
