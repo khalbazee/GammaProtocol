@@ -105,4 +105,16 @@ contract FixedPointInt256Tester {
     {
         return a.isLessThanOrEqual(b);
     }
+
+    function testMultiplication(
+        uint256 _a,
+        uint256 _b,
+        uint256 _decimals
+    ) external pure returns (uint256) {
+        FixedPointInt256.FixedPointInt memory a = FixedPointInt256.fromScaledUint(_a, _decimals);
+        FixedPointInt256.FixedPointInt memory b = FixedPointInt256.fromScaledUint(_b, _decimals);
+
+        FixedPointInt256.FixedPointInt memory c = a.mul(b);
+        return c.toScaledUint(_decimals, true);
+    }
 }

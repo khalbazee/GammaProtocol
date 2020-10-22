@@ -40,6 +40,13 @@ contract('FixedPointInt256 lib', () => {
   })
 
   describe('Test mul', () => {
+    it('Should test failing certora mul case', async () => {
+      const a = new BigNumber(57896044618658097711785492504343953926635000000000000000000)
+      const b = new BigNumber(1)
+      const expected = a.times(b)
+      const result = await lib.testMultiplication(a, b, 18)
+      console.log(expected.toString(), result.toString())
+    })
     it('Should return 10e27 for 2e27 * 5e27', async () => {
       const a = await lib.testFromUnscaledInt(new BigNumber(2))
       const b = await lib.testFromUnscaledInt(new BigNumber(5))
