@@ -26,6 +26,17 @@ contract ControllerHarness is Controller {
     address public anOtokenB;
     address public dummyERC20C;
 
+    
+    function assetBalanceOf(address asset, address a) external returns (uint256) {
+        if(asset == anOtokenA )
+            return  ERC20Interface(anOtokenA).balanceOf(a);
+        else if (asset == anOtokenB)
+            return  ERC20Interface(anOtokenB).balanceOf(a);
+        else if (asset == dummyERC20C)
+            return  ERC20Interface(dummyERC20C).balanceOf(a);
+        else
+            return ERC20Interface(asset).balanceOf(a);
+    }
 
     function assetBalanceOfPool(address asset) external returns (uint256){
         if(asset == anOtokenA )
@@ -49,8 +60,15 @@ contract ControllerHarness is Controller {
             return ERC20Interface(asset).totalSupply();
     }
 
+ 
     function isValidAsset(address asset) external returns (bool) {
         return true;
+    }
+
+    function isValidVault(address owner, uint256 vaultId) external returns (bool) {
+        MarginVault.Vault memory _vault = getVault(owner, vaultId);
+        (, bool isValidVault) = calculator.getExcessCollateral(_vault);
+        return isValidVault;
     }
 
     function getVaultCollateralAmount(address owner, uint256 vaultId, uint256 i) external returns (uint256) {
