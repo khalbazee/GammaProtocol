@@ -284,7 +284,7 @@ contract ControllerHarness is Controller {
             msgValue: msgValue,
             data: data
         });
-        _call(args);
+        _call(args, msgValue);
     }
 
     function isAuthorized(address _sender, address _accountOwner) external view returns (bool)  {

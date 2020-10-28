@@ -448,6 +448,7 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @return vaultId, the vault Id if a vault has changed
      */
     function _runActions(Actions.ActionArgs[] memory _actions)
+        virtual
         internal
         returns (
             bool,
