@@ -65,6 +65,10 @@ contract ControllerHarness is Controller {
         return true;
     }
 
+    function cheapGetVault(address owner, uint256 vaultId) internal returns (MarginVault.Vault storage) {
+        return vaults[owner][vaultId];
+    }
+
     function isValidVault(address owner, uint256 vaultId) external returns (bool) {
         MarginVault.Vault memory _vault = getVault(owner, vaultId);
         (, bool isValidVault) = calculator.getExcessCollateral(_vault);
@@ -72,34 +76,34 @@ contract ControllerHarness is Controller {
     }
 
     function getVaultCollateralAmount(address owner, uint256 vaultId, uint256 i) external returns (uint256) {
-        MarginVault.Vault memory vault = getVault(owner, vaultId);
+        MarginVault.Vault storage vault = cheapGetVault(owner, vaultId);
         return vault.collateralAmounts[i];
     }
 
     function getVaultCollateralAsset(address owner, uint256 vaultId, uint256 i) external returns (address) {
-        MarginVault.Vault memory vault = getVault(owner, vaultId);
+        MarginVault.Vault storage vault = cheapGetVault(owner, vaultId);
         return vault.collateralAssets[i];
     }
 
 
     function getVaultLongAmount(address owner, uint256 vaultId, uint256 i) external returns (uint256) {
-        MarginVault.Vault memory vault = getVault(owner, vaultId);
+        MarginVault.Vault storage vault = cheapGetVault(owner, vaultId);
         return vault.longAmounts[i];
     }
 
     function getVaultLongOtoken(address owner, uint256 vaultId, uint256 i) external returns (address) {
-        MarginVault.Vault memory vault = getVault(owner, vaultId);
+        MarginVault.Vault storage vault = cheapGetVault(owner, vaultId);
         return vault.longOtokens[i];
     }
 
 
     function getVaultShortAmount(address owner, uint256 vaultId, uint256 i) external returns (uint256) {
-        MarginVault.Vault memory vault = getVault(owner, vaultId);
+        MarginVault.Vault storage vault = cheapGetVault(owner, vaultId);
         return vault.shortAmounts[i];
     }
 
     function getVaultShortOtoken(address owner, uint256 vaultId, uint256 i) external returns (address) {
-        MarginVault.Vault memory vault = getVault(owner, vaultId);
+        MarginVault.Vault storage vault = cheapGetVault(owner, vaultId);
         return vault.shortOtokens[i];
     }
 
