@@ -1,7 +1,6 @@
 using OtokenHarnessA as otokenA
 using MarginPool as pool
 
-
 methods {
     //The tracked asset balance of the system
     pool.getStoredBalance(address) returns uint256 envfree
@@ -38,6 +37,9 @@ methods {
     isValidVault(address, uint256) returns bool envfree
 }
 
+summaries {
+    0x313ce567 => ALWAYS(18);
+}
 
 definition MAXINT() returns uint256 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 definition L() returns uint256 = 0xFFFFFF;
@@ -316,6 +318,14 @@ rule noBankruptcy(address asset, address owner, address oToken, method f) {
     require isValidVault(owner,0);
     assert ( pool.getStoredBalance(asset) >= (assetTotalSupply(oToken) -  pool.getStoredBalance(oToken) ) * otokenA.strikePrice() );
 
+}
+
+rule noBankruptcy2(address asset, address owner, address oToken) {
+      require asset == dummyERC20C(); //collateral token
+      require oToken == anOtokenA();
+      require getAccountVaultCounter(owner) <= 1;
+      require isValidVault(owner,0);
+      assert ( pool.getStoredBalance(asset) >= (assetTotalSupply(oToken) -  pool.getStoredBalance(oToken) ) * otokenA.strikePrice() );
 }
 
 rule inverseDepositLongWithdrawLong(address owner, uint256 vaultId, address from, uint256 index, uint256 amount) {
