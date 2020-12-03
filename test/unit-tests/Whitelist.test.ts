@@ -168,27 +168,6 @@ contract('Whitelist', ([owner, otokenFactoryAddress, random, newOwner, callee]) 
       assert.equal(isWhitelistedOtoken, true, 'fail: otoken not whitelisted')
     })
   })
-
-  describe('Blacklist otoken', () => {
-    it('should revert blacklisting an otoken from sender other than owner', async () => {
-      await expectRevert(
-        whitelist.blacklistOtoken(otoken.address, {from: otokenFactoryAddress}),
-        'Ownable: caller is not the owner',
-      )
-    })
-
-    it('should blacklist an otoken from owner address', async () => {
-      assert.equal(await whitelist.isWhitelistedOtoken(otoken.address), true, 'fail: otoken not whitelisted')
-
-      const blacklistTx = await whitelist.blacklistOtoken(otoken.address, {from: owner})
-
-      expectEvent(blacklistTx, 'OtokenBlacklisted')
-
-      const isWhitelistedOtoken = await whitelist.isWhitelistedOtoken(otoken.address)
-      assert.equal(isWhitelistedOtoken, false, 'fail: otoken not blacklisted')
-    })
-  })
-
   describe('Whitelist callee', () => {
     it('should revert whitelisting callee from non-owner address', async () => {
       await expectRevert(whitelist.whitelistCallee(callee, {from: random}), 'Ownable: caller is not the owner')
