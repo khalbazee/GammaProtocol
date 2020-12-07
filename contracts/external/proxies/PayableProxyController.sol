@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: UNLICENSED
  */
 pragma solidity =0.6.10;
+
 pragma experimental ABIEncoderV2;
 
 import {WETH9} from "../canonical-weth/WETH9.sol";
@@ -10,6 +11,7 @@ import {SafeERC20} from "../../packages/oz/SafeERC20.sol";
 import {ERC20Interface} from "../../interfaces/ERC20Interface.sol";
 import {Actions} from "../../libs/Actions.sol";
 import {Controller} from "../../Controller.sol";
+import {Address} from "../../packages/oz/Address.sol";
 
 /**
  * @title PayableProxyController
@@ -17,9 +19,11 @@ import {Controller} from "../../Controller.sol";
  * @dev Contract for wrapping/unwrapping ETH before/after interacting with the Gamma Protocol
  */
 contract PayableProxyController is ReentrancyGuard {
+    using SafeERC20 for ERC20Interface;
+    using Address for address payable;
+
     WETH9 public weth;
     Controller public controller;
-    using SafeERC20 for ERC20Interface;
 
     constructor(
         address _controller,
@@ -42,8 +46,9 @@ contract PayableProxyController is ReentrancyGuard {
      * @notice execute a number of actions
      * @dev a wrapper for the Controller operate function, to wrap WETH and the beginning and unwrap WETH at the end of the execution
      * @param _actions array of actions arguments
+     * @param _sendEthTo address to send the remaining eth to
      */
-    function operate(Actions.ActionArgs[] memory _actions, address payable sendEthTo) external payable nonReentrant {
+    function operate(Actions.ActionArgs[] memory _actions, address payable _sendEthTo) external payable nonReentrant {
         // create WETH from ETH
         if (msg.value != 0) {
             weth.deposit{value: msg.value}();
@@ -60,6 +65,11 @@ contract PayableProxyController is ReentrancyGuard {
                     "PayableProxyController: cannot execute action "
                 );
             }
+
+            if (action.actionType == Actions.ActionType.Call) {
+                // our PayableProxy could ends up approving amount > total eth received.
+                ERC20Interface(address(weth)).safeIncreaseAllowance(action.secondAddress, msg.value);
+            }
         }
 
         controller.operate(_actions);
@@ -67,10 +77,10 @@ contract PayableProxyController is ReentrancyGuard {
         // return all remaining WETH to the sendEthTo address as ETH
         uint256 remainingWeth = weth.balanceOf(address(this));
         if (remainingWeth != 0) {
-            require(sendEthTo != address(0), "PayableProxyController: cannot send ETH to address zero");
+            require(_sendEthTo != address(0), "PayableProxyController: cannot send ETH to address zero");
 
             weth.withdraw(remainingWeth);
-            sendEthTo.transfer(remainingWeth);
+            _sendEthTo.sendValue(remainingWeth);
         }
     }
 }

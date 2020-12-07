@@ -75,9 +75,8 @@ contract MarginPool is Ownable {
         address _asset,
         address _user,
         uint256 _amount
-    ) virtual public onlyController {
+    ) public virtual onlyController {
         require(_amount > 0, "MarginPool: transferToPool amount is equal to 0");
-
         assetBalance[_asset] = assetBalance[_asset].add(_amount);
 
         // transfer _asset _amount from _user to pool
@@ -95,7 +94,8 @@ contract MarginPool is Ownable {
         address _asset,
         address _user,
         uint256 _amount
-    ) virtual public onlyController {
+    ) public virtual onlyController {
+        require(_user != address(this), "MarginPool: cannot transfer assets to oneself");
         assetBalance[_asset] = assetBalance[_asset].sub(_amount);
 
         // transfer _asset _amount from pool to _user
