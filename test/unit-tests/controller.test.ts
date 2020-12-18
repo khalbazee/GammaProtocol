@@ -3,6 +3,7 @@ import {
   MarginCalculatorInstance,
   MockOtokenInstance,
   MockERC20Instance,
+  MockPricerInstance,
   MockOracleInstance,
   MockWhitelistModuleInstance,
   MarginPoolInstance,
@@ -17,6 +18,7 @@ const {expectRevert, expectEvent, time} = require('@openzeppelin/test-helpers')
 
 const CallTester = artifacts.require('CallTester.sol')
 const MockERC20 = artifacts.require('MockERC20.sol')
+const MockPricer = artifacts.require('MockPricer.sol')
 const MockOtoken = artifacts.require('MockOtoken.sol')
 const MockOracle = artifacts.require('MockOracle.sol')
 const OwnedUpgradeabilityProxy = artifacts.require('OwnedUpgradeabilityProxy.sol')
@@ -51,6 +53,7 @@ contract(
     let usdc: MockERC20Instance
     let weth: MockERC20Instance
     let weth2: MockERC20Instance
+
     // Oracle module
     let oracle: MockOracleInstance
     // calculator module
@@ -3930,8 +3933,6 @@ contract(
         expectEvent(await controllerProxy.operate(actionArgs, {from: accountOwner1}), 'CallExecuted', {
           from: accountOwner1,
           to: callTester.address,
-          vaultOwner: ZERO_ADDR,
-          vaultId: '0',
           data: ZERO_ADDR,
         })
       })
@@ -3994,8 +3995,6 @@ contract(
         expectEvent(await controllerProxy.operate(actionArgs, {from: accountOwner1}), 'CallExecuted', {
           from: accountOwner1,
           to: callTester.address,
-          vaultOwner: ZERO_ADDR,
-          vaultId: '0',
           data: ZERO_ADDR,
         })
       })

@@ -10,9 +10,14 @@ methods {
     
     // ERC20 functions
     collateralToken.totalSupply() returns uint256 envfree
+    shortOtoken.totalSupply() returns uint256 envfree
     collateralToken.balanceOf(address) returns uint256 envfree
-
     longOtoken.balanceOf(address) returns uint256 envfree
+
+    // get the cash value for an otoken afte rexpiry
+    getPayout(address, uint256) returns uint256 envfree
+    
+    getProceed(address, uint256) returns uint256 envfree
 
     //the amount of collateral in an index in a vault of an owner. i.e.,  vaults[owner][index].collateralAmounts[i]
     getVaultCollateralAmount(address, uint256, uint256)  returns uint256 envfree
@@ -30,6 +35,8 @@ methods {
     isVaultExpired(address, uint256) returns bool
     // checks if vault is "small" all lengths shorter than a constant
     smallVault(address, uint256, uint256) returns bool envfree
+    // checks that a vault is valid
+    isValidVault(address, uint256) returns bool envfree
 
     // The total supply of an asset. i.e., asset.totalSupply()
     assetTotalSupply(address) returns uint256 envfree
@@ -138,8 +145,8 @@ description "$f breaks the validity of stored balance of short asset"
 {
     env e;
     calldataarg arg;
-    require oToken == collateralToken;
-    require !isVaultExpired(e, owner, vaultId);
+    require oToken == shortOtoken;
+    require isVaultExpired(e, owner, vaultId);
     require getVaultShortOtoken(owner, vaultId, index) == oToken;
     uint256 shortVaultBefore = getVaultShortAmount(owner, vaultId, index);
     uint256 supplyBefore = collateralToken.totalSupply();
@@ -152,6 +159,31 @@ description "$f breaks the validity of stored balance of short asset"
     uint256 shortVaultAfter = getVaultShortAmount(owner, vaultId, index);
     uint256 supplyAfter = collateralToken.totalSupply();
     assert shortVaultBefore != shortVaultAfter => (supplyAfter - supplyBefore ==  shortVaultAfter - shortVaultBefore);
+}
+
+rule validBalanceTotalCollateralPostExpiry(address owner, uint256 vaultId, uint256 index, address oToken, address to, address collateral) {
+    // env e;
+    // require oToken == shortOtoken;
+    // require collateral == collateralToken;
+    // require isValidVault(owner, vaultId); 
+    // require getVaultShortOtoken(owner, vaultId, index) == oToken;
+    // require getVaultCollateralAsset(owner, vaultId, index) == collateral;
+    // uint256 collateralVaultBefore = getProceed(owner, vaultId);
+    // uint256 supplyBefore = shortOtoken.totalSupply();
+    // // uint256 collateralBalanceBefore = collateralToken.balanceOf(pool);
+
+    // sinvoke settleVault(e, owner, vaultId, to);
+
+    // uint256 shortVaultAfter = getVaultShortAmount(owner, vaultId, index);
+    // uint256 supplyAfter = shortOtoken.totalSupply();
+    // // uint256 collateralBalanceAfter = collateralToken.balanceOf(pool);
+    // assert shortVaultAfter == 0;
+    // assert supplyAfter == supplyBefore;
+    // // assert collateralBalanceBefore - collateralBalanceAfter == collateralVaultBefore;
+    
+    // 1. in a single tx only 1 vault can be modified 
+    // 
+
 }
 
 rule cantSettleUnexpiredVault(address owner, uint256 vaultId)
@@ -228,9 +260,7 @@ rule OtokenInVaultIsWhitelisted(address owner, uint256 vaultId, uint256 index, a
     callFunctionWithParameters(f, owner, vaultId, index);
     assert ( getVaultShortOtoken(owner, vaultId, index) == otoken || getVaultLongOtoken(owner, vaultId, index) == otoken) 
                 => whitelist.isWhitelistedOtoken(otoken);
-    
 }
-
 
 invariant assetIsNotOtoken(address a)
     !(whitelist.isWhitelistedOtoken(a) && whitelist.isWhitelistedCollateral(a))
